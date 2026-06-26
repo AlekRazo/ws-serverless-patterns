@@ -1,0 +1,72 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  SAM Template for Module 3 (orders)
+
+Globals:
+  Api:
+    TracingEnabled: true #Enables AWS X-Ray tracing for the API Gateway
+
+Parameters:
+  UserPool:
+    Type: String
+    Description: User Pool ID produced by the Users module
+
+Resources:
+  # Amazon DynamoDB
+  OrdersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "userId"
+          AttributeType: "S"
+        - AttributeName: "orderId"
+          AttributeType: "S"
+      KeySchema: # Specifies the primary key. For Orders, the key is a composite of "userId" and "orderId".
+        - AttributeName: "userId" # PRIMARY KEY
+          KeyType: "HASH"
+        - AttributeName: "orderId" # SORT KEY
+          KeyType: "RANGE"
+      BillingMode: PAY_PER_REQUEST
+  
+  # AWS API Gateway
+  WorkshopApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Auth:
+        DefaultAuthorizer: Module3CognitoAuthorizer
+        Authorizers:
+          Module3CognitoAuthorizer:
+            UserPoolArn: !Sub "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${UserPool}"
+  
+  #AWS Lambda
+  AddOrderFunction:
+    Type: AWS::Serverless:Function
+    Properties:
+      CodeUri: src/api/order/create
+      Handler: create_order.lambda_handler
+      Runtime: python3.14
+      Tracing: Active
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref OrdersTable
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref OrdersTable
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /orders
+            Method: post
+            RestApiId: !Ref WorkshopApiGateway
+
+Outputs:
+  OrderServiceEndpoint:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${WorkshopApiGateway}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+  
+  OrdersTable:
+    Description: "DynamoDB Orders Table"
+    Value: !Ref OrdersTable
