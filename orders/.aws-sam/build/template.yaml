@@ -1,36 +1,30 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: >
-  SAM Template for Module 3 (orders)
+Description: 'SAM Template for Module 3 (orders)
 
+  '
 Globals:
   Api:
-    TracingEnabled: true #Enables AWS X-Ray tracing for the API Gateway
-
+    TracingEnabled: true
 Parameters:
   UserPool:
     Type: String
     Description: User Pool ID produced by the Users module
-
 Resources:
-  # Amazon DynamoDB
   OrdersTable:
     Type: AWS::DynamoDB::Table
     Properties:
       AttributeDefinitions:
-        - AttributeName: "userId"
-          AttributeType: "S"
-        - AttributeName: "orderId"
-          AttributeType: "S"
-      # Specifies the primary key. For Orders, the key is a composite of "userId" and "orderId".
+      - AttributeName: userId
+        AttributeType: S
+      - AttributeName: orderId
+        AttributeType: S
       KeySchema:
-        - AttributeName: "userId" # PARTITION KEY
-          KeyType: "HASH"
-        - AttributeName: "orderId" # SORT KEY
-          KeyType: "RANGE"
+      - AttributeName: userId
+        KeyType: HASH
+      - AttributeName: orderId
+        KeyType: RANGE
       BillingMode: PAY_PER_REQUEST
-  
-  # AWS API Gateway
   WorkshopApiGateway:
     Type: AWS::Serverless::Api
     Properties:
@@ -39,94 +33,103 @@ Resources:
         DefaultAuthorizer: Module3CognitoAuthorizer
         Authorizers:
           Module3CognitoAuthorizer:
-            UserPoolArn: !Sub "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${UserPool}"
-  
-  #AWS Lambda
+            UserPoolArn:
+              Fn::Sub: arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${UserPool}
   AddOrderFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: src/api/order/create
+      CodeUri: AddOrderFunction
       Handler: create_order.lambda_handler
       Runtime: python3.14
       Tracing: Active
       Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref OrdersTable
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: OrdersTable
       Environment:
         Variables:
-          TABLE_NAME: !Ref OrdersTable
+          TABLE_NAME:
+            Ref: OrdersTable
       Events:
         ApiEvent:
           Type: Api
           Properties:
             Path: /orders
             Method: post
-            RestApiId: !Ref WorkshopApiGateway
-
-  # Lambda Layer for Orders retrieval 
+            RestApiId:
+              Ref: WorkshopApiGateway
+    Metadata:
+      SamResourceId: AddOrderFunction
   PyUtils:
     Type: AWS::Serverless::LayerVersion
     Properties:
       LayerName: pyutils
       Description: Shared utilities for Orders service
-      ContentUri: src/layers
+      ContentUri: PyUtils
       CompatibleRuntimes:
-        - python3.14
+      - python3.14
       RetentionPolicy: Delete
     Metadata:
       BuildMethod: python3.14
-
-  # AWS Lambda
+      SamResourceId: PyUtils
   GetOrderFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: src/api/order/get
+      CodeUri: GetOrderFunction
       Handler: get_order.lambda_handler
       Runtime: python3.14
       Tracing: Active
       Policies:
         DynamoDBReadPolicy:
-          TableName: !Ref OrdersTable
+          TableName:
+            Ref: OrdersTable
       Environment:
         Variables:
-          TABLE_NAME: !Ref OrdersTable
-      # Note the reference to PyUtils in the Layers attribute. That's all you need to make the Lambda layer available to your function!
+          TABLE_NAME:
+            Ref: OrdersTable
       Layers:
-        - !Ref PyUtils
+      - Ref: PyUtils
       Events:
         ApiEvent:
           Type: Api
           Properties:
             Path: /orders/{orderId}
             Method: get
-            RestApiId: !Ref WorkshopApiGateway
-  
+            RestApiId:
+              Ref: WorkshopApiGateway
+    Metadata:
+      SamResourceId: GetOrderFunction
   ListOrdersFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: src/api/order/list
+      CodeUri: ListOrdersFunction
       Handler: list_orders.lambda_handler
       Runtime: python3.14
       Tracing: Active
       Policies:
         DynamoDBReadPolicy:
-          TableName: !Ref OrdersTable
+          TableName:
+            Ref: OrdersTable
       Environment:
         Variables:
-          TABLE_NAME: !Ref OrdersTable
+          TABLE_NAME:
+            Ref: OrdersTable
       Events:
         ApiEvent:
           Type: Api
           Properties:
             Path: /orders
             Method: get
-            RestApiId: !Ref WorkshopApiGateway
-
+            RestApiId:
+              Ref: WorkshopApiGateway
+    Metadata:
+      SamResourceId: ListOrdersFunction
 Outputs:
   OrdersServiceEndpoint:
-    Description: "API Gateway endpoint URL"
-    Value: !Sub "https://${WorkshopApiGateway}.execute-api.${AWS::Region}.amazonaws.com/Prod"
-  
+    Description: API Gateway endpoint URL
+    Value:
+      Fn::Sub: https://${WorkshopApiGateway}.execute-api.${AWS::Region}.amazonaws.com/Prod
   OrdersTable:
-    Description: "DynamoDB Orders Table"
-    Value: !Ref OrdersTable
+    Description: DynamoDB Orders Table
+    Value:
+      Ref: OrdersTable
