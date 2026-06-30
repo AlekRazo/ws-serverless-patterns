@@ -41,11 +41,13 @@ from aws_lambda_powertools.utilities.idempotency import (
     IdempotencyConfig, DynamoDBPersistenceLayer, idempotent_function
 )
 # Logging
-from aws_lambda_powertools import Logger
+from aws_lambda_powertools import Logger, Metrics
+# Metrics
+from aws_lambda_powertools.metrics import MetricUnit
 
 # Globals
-# Logger
-logger = Logger()
+logger = Logger() # Logger
+metrics = Metrics() # Metrics
 orders_table = os.getenv('TABLE_NAME') # Gotten from template.yaml -> Resources:AddOrderFunction:Properties:Environment:Variables:
 idempotency_table = os.getenv('IDEMPOTENCY_TABLE_NAME') # Idempotency
 dynamodb = boto3.resource('dynamodb')
@@ -90,8 +92,13 @@ def add_order(event: dict):
     detail['orderTime'] = order_time
     detail['status'] = 'PLACED'
 
+    logger.info(f"new Order with ID {order_id} saved")
+    metrics.add_metric(name="SuccessfulOrder", unit=MetricUnit.Count, value=1)
+    metrics.add_metric(name="OrderTotal", unit=MetricUnit.Count, value=total_amount)
+
     return detail
 
+@metrics.log_metrics
 @logger.inject_lambda_context
 def lambda_handler(event, context:LambdaContext):
     # Idempotency
