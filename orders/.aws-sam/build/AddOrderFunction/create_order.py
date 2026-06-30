@@ -92,6 +92,7 @@ def add_order(event: dict):
 
     return detail
 
+@logger.inject_lambda_context
 def lambda_handler(event, context:LambdaContext):
     # Idempotency
     idempotency_config.register_lambda_context(context)
