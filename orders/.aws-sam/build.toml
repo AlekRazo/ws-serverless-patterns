@@ -27,6 +27,24 @@ manifest_hash = ""
 packagetype = "Zip"
 functions = ["ListOrdersFunction"]
 
+[function_build_definitions.ebf8dd96-168d-41a6-b2ae-e3b8c718c77e]
+codeuri = "C:\\Dev\\aws-labs\\ws-serverless-patterns\\orders\\src\\api\\order\\edit"
+runtime = "python3.14"
+architecture = "x86_64"
+handler = "edit_order.lambda_handler"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["EditOrderFunction"]
+
+[function_build_definitions.d4c62cfa-9226-464b-914b-5b7856e00b82]
+codeuri = "C:\\Dev\\aws-labs\\ws-serverless-patterns\\orders\\src\\api\\order\\cancel"
+runtime = "python3.14"
+architecture = "x86_64"
+handler = "cancel_order.lambda_handler"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["CancelOrderFunction"]
+
 [layer_build_definitions.31f23bf4-2514-4537-acad-aa8f7ee21415]
 layer_name = "PyUtils"
 codeuri = "C:\\Dev\\aws-labs\\ws-serverless-patterns\\orders\\src\\layers"

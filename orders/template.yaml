@@ -6,6 +6,13 @@ Description: >
 Globals:
   Api:
     TracingEnabled: true #Enables AWS X-Ray tracing for the API Gateway
+  #Adding Idempotency to orders module
+  Function:
+    Environment:
+      Variables:
+        POWERTOOLS_SERVICE_NAME: orders
+    Layers:
+      - !Sub arn:aws:lambda:${AWS::Region}:017000801446:layer:AWSLambdaPowertoolsPythonV2:68
 
 Parameters:
   UserPool:
@@ -52,9 +59,14 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref OrdersTable
+        # Adding idempotency
+        - DynamoDBCrudPolicy:
+            TableName: !Ref IdempotencyTable
       Environment:
         Variables:
           TABLE_NAME: !Ref OrdersTable
+          # Adding idempotency
+          IDEMPOTENCY_TABLE_NAME: !Ref IdempotencyTable
       Events:
         ApiEvent:
           Type: Api
@@ -101,6 +113,7 @@ Resources:
             Method: get
             RestApiId: !Ref WorkshopApiGateway
   
+  # AWS Lambda
   ListOrdersFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -121,6 +134,69 @@ Resources:
             Path: /orders
             Method: get
             RestApiId: !Ref WorkshopApiGateway
+
+  # AWS Lambda
+  EditOrderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/api/order/edit
+      Handler: edit_order.lambda_handler
+      Runtime: python3.14
+      Tracing: Active
+      Policies:
+        DynamoDBCrudPolicy:
+          TableName: !Ref OrdersTable
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref OrdersTable
+      Layers:
+        - !Ref PyUtils
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /orders/{orderId}
+            Method: put
+            RestApiId: !Ref WorkshopApiGateway
+  
+  # AWS Lambda
+  CancelOrderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/api/order/cancel
+      Handler: cancel_order.lambda_handler
+      Runtime: python3.14
+      Tracing: Active
+      Policies:
+        DynamoDBCrudPolicy:
+          TableName: !Ref OrdersTable
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref OrdersTable
+      Layers:
+        - !Ref PyUtils
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /orders/{orderId}
+            Method: delete
+            RestApiId: !Ref WorkshopApiGateway
+
+  # Amazon DynamoDB
+  IdempotencyTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: expiration
+        Enabled: true
+      BillingMode: PAY_PER_REQUEST
 
 Outputs:
   OrdersServiceEndpoint:

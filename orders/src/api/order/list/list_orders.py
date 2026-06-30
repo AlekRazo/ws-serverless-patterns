@@ -1,3 +1,7 @@
+# List Orders
+# Our users want to be able to see a list of all orders they have placed. 
+# In this step, create a Lambda function which will return all orders for the User 
+# based on the user ID value in the request context.
 import simplejson as json
 import os
 import boto3
