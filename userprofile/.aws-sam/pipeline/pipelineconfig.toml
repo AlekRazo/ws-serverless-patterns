@@ -1,0 +1,24 @@
+version = 0.1
+
+[default.pipeline_bootstrap.parameters]
+oidc_provider_url = "https://token.actions.githubusercontent.com"
+oidc_client_id = "sts.amazonaws.com"
+github_org = "AlekRazo"
+github_repo = "https://github.com/AlekRazo/ws-serverless-patterns"
+deployment_branch = "main"
+oidc_provider = "github-actions"
+permissions_provider = "OpenID Connect (OIDC)"
+
+[dev.pipeline_bootstrap.parameters]
+pipeline_execution_role = "arn:aws:iam::622004253958:role/aws-sam-cli-managed-dev-pipel-PipelineExecutionRole-3zVVoIXB04jT"
+cloudformation_execution_role = "arn:aws:iam::622004253958:role/aws-sam-cli-managed-dev-p-CloudFormationExecutionRo-1QBqulzAEFfm"
+artifacts_bucket = "aws-sam-cli-managed-dev-pipeline-r-artifactsbucket-usqi2z8iudek"
+image_repository = ""
+region = "us-east-1"
+
+[prod.pipeline_bootstrap.parameters]
+pipeline_execution_role = "arn:aws:iam::622004253958:role/aws-sam-cli-managed-prod-pipe-PipelineExecutionRole-ukM1V6kjartB"
+cloudformation_execution_role = "arn:aws:iam::622004253958:role/aws-sam-cli-managed-prod--CloudFormationExecutionRo-wQX6v8ZtaMEa"
+artifacts_bucket = "aws-sam-cli-managed-prod-pipeline--artifactsbucket-fdnprtdopqnc"
+image_repository = ""
+region = "us-east-1"
